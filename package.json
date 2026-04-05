@@ -23,6 +23,12 @@
   "bin": {
     "ccr": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "claude",
     "code",
