@@ -46,6 +46,7 @@ jobs:
 
       - name: Prepare publish package.json
         run: |
+          cp package.json package.json.bak
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -58,6 +59,10 @@ jobs:
       - name: Pack npm tarball
         run: npm pack --pack-destination /tmp
         id: pack
+
+      - name: Restore package.json
+        if: always()
+        run: mv package.json.bak package.json
 
       - name: Find tarball
         id: tarball
