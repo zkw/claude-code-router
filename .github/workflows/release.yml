@@ -44,9 +44,25 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Prepare publish package.json
+        run: |
+          cp package.json package.json.bak
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            delete pkg.devDependencies;
+            delete pkg.scripts;
+            delete pkg.pnpm;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
       - name: Pack npm tarball
         run: npm pack --pack-destination /tmp
         id: pack
+
+      - name: Restore package.json
+        if: always()
+        run: mv package.json.bak package.json
 
       - name: Find tarball
         id: tarball
