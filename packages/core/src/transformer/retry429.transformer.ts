@@ -1,5 +1,5 @@
-import { UnifiedChatRequest } from "../types/llm";
-import { Transformer, TransformerOptions } from "../types/transformer";
+import { LLMProvider, UnifiedChatRequest } from "../types/llm";
+import { Transformer, TransformerContext, TransformerOptions } from "../types/transformer";
 
 export class Retry429Transformer implements Transformer {
   static TransformerName = "retry429";
@@ -14,8 +14,8 @@ export class Retry429Transformer implements Transformer {
 
   async transformRequestIn(
     request: UnifiedChatRequest,
-    _provider: any,
-    _context: any
+    _provider: LLMProvider,
+    _context: TransformerContext
   ): Promise<{ body: UnifiedChatRequest; config: any }> {
     return {
       body: request,

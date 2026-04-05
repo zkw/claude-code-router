@@ -71,7 +71,10 @@ export async function sendUnifiedRequest(
     if (retryAfterHeader && /^\d+$/.test(retryAfterHeader)) {
       delayMs = parseInt(retryAfterHeader, 10) * 1000;
     } else if (retryAfterHeader) {
-      const parsedMs = new Date(retryAfterHeader).getTime() - Date.now();
+      const parsedDate = new Date(retryAfterHeader);
+      const parsedMs = Number.isNaN(parsedDate.getTime())
+        ? -1
+        : parsedDate.getTime() - Date.now();
       delayMs = parsedMs > 0 ? parsedMs : initialDelayMs;
     } else {
       delayMs = initialDelayMs * Math.pow(2, attempt);
