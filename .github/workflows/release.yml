@@ -57,16 +57,27 @@ jobs:
           echo "name=$NAME" >> $GITHUB_OUTPUT
           echo "Tarball: $FILE"
 
+      - name: Determine tag name
+        id: tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v${{ steps.version.outputs.version }}"
+          fi
+          echo "name=$TAG" >> $GITHUB_OUTPUT
+          echo "Release tag: $TAG"
+
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || format('v{0}', steps.version.outputs.version) }}
-          name: Claude Code Router v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Claude Code Router ${{ steps.tag.outputs.name }}
           body: |
             ## Install
 
             ```bash
-            npm install -g https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name || format('v{0}', steps.version.outputs.version) }}/${{ steps.tarball.outputs.name }}
+            npm install -g https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/${{ steps.tarball.outputs.name }}
             ```
 
             ## Usage
