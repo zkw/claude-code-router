@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Pack npm tarball
+        run: npm pack --pack-destination /tmp
+        id: pack
+
+      - name: Find tarball
+        id: tarball
+        run: |
+          FILE=$(ls /tmp/*.tgz | head -1)
+          NAME=$(basename "$FILE")
+          echo "path=$FILE" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "Tarball: $FILE"
+
+      - name: Determine tag name
+        id: tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v${{ steps.version.outputs.version }}"
+          fi
+          echo "name=$TAG" >> $GITHUB_OUTPUT
+          echo "Release tag: $TAG"
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Claude Code Router ${{ steps.tag.outputs.name }}
+          body: |
+            ## Install
+
+            ```bash
+            npm install -g https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/${{ steps.tarball.outputs.name }}
+            ```
+
+            ## Usage
+
+            ```bash
+            ccr start
+            ```
+          files: ${{ steps.tarball.outputs.path }}
+          draft: false
+          prerelease: false
