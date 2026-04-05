@@ -1,7 +1,7 @@
 import { ProxyAgent } from "undici";
 import { UnifiedChatRequest } from "../types/llm";
 
-export function sendUnifiedRequest(
+export async function sendUnifiedRequest(
   url: URL | string,
   request: UnifiedChatRequest,
   config: any,
@@ -43,15 +43,45 @@ export function sendUnifiedRequest(
       new URL(config.httpsProxy).toString()
     );
   }
+  const requestUrl = typeof url === "string" ? url : url.toString();
   logger?.debug(
     {
       reqId: context.req.id,
       request: fetchOptions,
       headers: Object.fromEntries(headers.entries()),
-      requestUrl: typeof url === "string" ? url : url.toString(),
+      requestUrl,
       useProxy: config.httpsProxy,
     },
     "final request"
   );
-  return fetch(typeof url === "string" ? url : url.toString(), fetchOptions);
+
+  const retry429 = config.retry429;
+  const maxRetries: number = retry429?.maxRetries ?? 0;
+  const initialDelayMs: number = retry429?.initialDelayMs ?? 1000;
+
+  let attempt = 0;
+  while (true) {
+    const response = await fetch(requestUrl, fetchOptions);
+    if (response.status !== 429 || attempt >= maxRetries) {
+      return response;
+    }
+
+    const retryAfterHeader = response.headers.get("Retry-After");
+    let delayMs: number;
+    if (retryAfterHeader && /^\d+$/.test(retryAfterHeader)) {
+      delayMs = parseInt(retryAfterHeader, 10) * 1000;
+    } else if (retryAfterHeader) {
+      const parsedMs = new Date(retryAfterHeader).getTime() - Date.now();
+      delayMs = parsedMs > 0 ? parsedMs : initialDelayMs;
+    } else {
+      delayMs = initialDelayMs * Math.pow(2, attempt);
+    }
+
+    logger?.warn(
+      { reqId: context.req.id, attempt: attempt + 1, maxRetries, delayMs },
+      "[retry429] rate limited, retrying after delay"
+    );
+    await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    attempt++;
+  }
 }
