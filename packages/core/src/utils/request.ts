@@ -77,7 +77,7 @@ export async function sendUnifiedRequest(
         : parsedDate.getTime() - Date.now();
       delayMs = parsedMs > 0 ? parsedMs : initialDelayMs;
     } else {
-      delayMs = initialDelayMs * Math.pow(2, attempt);
+      delayMs = Math.random() * initialDelayMs;
     }
 
     logger?.warn(
