@@ -58,14 +58,16 @@ export async function sendUnifiedRequest(
   const retry429 = config.retry429;
   const maxRetries: number = retry429?.maxRetries ?? 0;
   const initialDelayMs: number = retry429?.initialDelayMs ?? 1000;
-  // Status codes that should NOT be retried; all other codes trigger a retry
-  const excludeStatusCodes: number[] = retry429?.excludeStatusCodes ?? [200];
+  // Status codes that should NOT be retried; 2xx responses are always excluded
+  const excludeStatusCodes: number[] = retry429?.excludeStatusCodes ?? [];
 
   let attempt = 0;
   while (true) {
     const response = await fetch(requestUrl, fetchOptions);
     const shouldRetry =
-      !excludeStatusCodes.includes(response.status) && attempt < maxRetries;
+      !response.ok &&
+      !excludeStatusCodes.includes(response.status) &&
+      attempt < maxRetries;
     if (!shouldRetry) {
       return response;
     }
@@ -92,7 +94,7 @@ export async function sendUnifiedRequest(
         delayMs,
         status: response.status,
       },
-      "[retry429] request failed, retrying after delay"
+      "[retry] request failed, retrying after delay"
     );
     await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
     attempt++;

@@ -11,9 +11,9 @@ export class Retry429Transformer implements Transformer {
   constructor(private readonly options?: TransformerOptions) {
     this.maxRetries = options?.maxRetries ?? 3;
     this.initialDelayMs = options?.initialDelayMs ?? 1000;
-    // excludeStatusCodes: comma-separated list of HTTP status codes that should NOT be retried
-    // Defaults to "200" so that only non-2xx/error responses are retried by default
-    const rawExclude: string = options?.excludeStatusCodes ?? "200";
+    // excludeStatusCodes: comma-separated list of HTTP status codes that should NOT be retried.
+    // All other status codes will be retried. Successful (2xx) responses are never retried.
+    const rawExclude: string = options?.excludeStatusCodes ?? "";
     this.excludeStatusCodes = rawExclude
       .split(",")
       .map((s: string) => parseInt(s.trim(), 10))
