@@ -198,6 +198,40 @@ Specialized transformer for DeepSeek API:
 
 Transformer for Google Gemini API:
 
+### retry429
+
+The `retry429` transformer retries provider requests when HTTP errors occur, including 429 Too Many Requests.
+
+Use it in provider-level or model-level transformer arrays. It adds a request-level `retry429` config that the HTTP sender honors.
+
+```json
+{
+  "name": "retry429",
+  "options": {
+    "maxRetries": 4,
+    "initialDelayMs": 2000,
+    "excludeStatusCodes": [400, 401]
+  }
+}
+```
+
+- `maxRetries`: 最大重试次数
+- `initialDelayMs`: 初始延迟，单位毫秒
+- `excludeStatusCodes`: 不重试的 HTTP 状态码列表
+
+在 provider 配置里放在 `transformer.use` 里即可，顺序不影响结果。
+
+```json
+"transformer": {
+  "use": [
+    ["retry429", { "maxRetries": 5, "initialDelayMs": 1500 }],
+    "anthropic"
+  ]
+}
+```
+
+如果你想针对某个模型设置，放在 `provider.transformer.<model>.use` 里也可以。
+
 ```json
 {
   "transformers": [

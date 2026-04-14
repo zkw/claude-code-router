@@ -264,11 +264,17 @@ async function processRequestTransformers(
       ) {
         continue;
       }
-      requestBody = await modelTransformer.transformRequestIn(
+      const transformIn = await modelTransformer.transformRequestIn(
         requestBody,
         provider,
         context
       );
+      if (transformIn && typeof transformIn === "object" && "body" in transformIn) {
+        requestBody = transformIn.body;
+        config = { ...config, ...transformIn.config };
+      } else if (transformIn) {
+        requestBody = transformIn;
+      }
     }
   }
 
@@ -673,9 +679,8 @@ export const registerApiRoutes = async (
         throw createApiError("Provider not found", 404, "provider_not_found");
       }
       return {
-        message: `Provider ${
-          request.body.enabled ? "enabled" : "disabled"
-        } successfully`,
+        message: `Provider ${request.body.enabled ? "enabled" : "disabled"
+          } successfully`,
       };
     }
   );

@@ -9,14 +9,19 @@ export class Retry429Transformer implements Transformer {
   private excludeStatusCodes: number[];
 
   constructor(private readonly options?: TransformerOptions) {
-    this.maxRetries = options?.maxRetries ?? 3;
-    this.initialDelayMs = options?.initialDelayMs ?? 1000;
-    // excludeStatusCodes: comma-separated list of HTTP status codes that should NOT be retried.
-    // All other status codes will be retried. Successful (2xx) responses are never retried.
-    const rawExclude: string = options?.excludeStatusCodes ?? "";
-    this.excludeStatusCodes = rawExclude
-      .split(",")
-      .map((s: string) => parseInt(s.trim(), 10))
+    this.maxRetries = Number.isNaN(Number(options?.maxRetries))
+      ? 3
+      : Number(options?.maxRetries);
+    this.initialDelayMs = Number.isNaN(Number(options?.initialDelayMs))
+      ? 1000
+      : Number(options?.initialDelayMs);
+    // excludeStatusCodes may be a comma-separated string or an array of numbers.
+    const rawExclude = options?.excludeStatusCodes ?? "";
+    const excludeList = Array.isArray(rawExclude)
+      ? rawExclude
+      : String(rawExclude).split(",");
+    this.excludeStatusCodes = excludeList
+      .map((item: string | number) => parseInt(String(item).trim(), 10))
       .filter((n: number) => !Number.isNaN(n));
   }
 
